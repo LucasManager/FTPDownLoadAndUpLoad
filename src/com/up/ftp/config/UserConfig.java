@@ -25,9 +25,11 @@ public class UserConfig {
 	
 	private boolean isDelete = false;//if delete when finish
 	
-	public UserConfig(){
+	private String configFileName;
+	
+	public UserConfig(Properties pt,String fileName) throws Exception{
 		//parse config file:
-		Properties pt = PropertiesUtil.getProperties("config.properties");
+		configFileName = fileName;
 		userName = pt.getProperty("userName");
 		password = pt.getProperty("password");
 		ipAddress = pt.getProperty("ftpserver");
@@ -115,6 +117,14 @@ public class UserConfig {
 
 	public boolean isDelete() {
 		return isDelete;
+	}
+
+	public void setConfigFileName(String configFileName) {
+		this.configFileName = configFileName;
+	}
+
+	public String getConfigFileName() {
+		return configFileName;
 	}
 
 }

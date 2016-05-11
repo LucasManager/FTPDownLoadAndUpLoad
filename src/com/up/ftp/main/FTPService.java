@@ -4,28 +4,29 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.util.Date;
 
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
 import org.apache.commons.net.ftp.FTPReply;
-import org.apache.log4j.BasicConfigurator;
-import org.apache.log4j.Logger;
 
 import com.up.ftp.config.UserConfig;
+import com.up.ftp.util.Logger;
 
-public class FTPService {
+public class FTPService extends Thread {
 
 	private static Logger log = Logger.getLogger(FTPService.class);
 
-	private static FTPClient ftp;
+	private FTPClient ftp;
+	private UserConfig config;
 
-	public static void main(String[] args) {
-		BasicConfigurator.configure();
-		UserConfig config = new UserConfig();
-		System.out.println("start: ---"+new Date().getTime());
+	public FTPService(UserConfig config)
+	{
+		this.config = config;
+	}
+	
+	public void run(){
 		if (!connect(config)) {
-			log.error("connect ftp server fail!");
+			log.error(config.getConfigFileName()+" :connect ftp server fail!");
 		}
 		try {
 			if("upload".equals(config.getRunType())){
@@ -35,10 +36,10 @@ public class FTPService {
 			}
 			
 		} catch (Exception e) {
-			log.error("upload error :" + e.getMessage());
+			log.error(config.getConfigFileName()+" :upload error :" + e.getMessage());
 		}finally{
 			ftpLogOut();
-			System.out.println("end: ---"+new Date().getTime());
+//			System.out.println(config.getConfigFileName()+" end: ---"+new Date().getTime());
 			
 		}
 	}
@@ -49,7 +50,7 @@ public class FTPService {
 	 * @param config
 	 * @return
 	 */
-	public static boolean connect(UserConfig config) {
+	private boolean connect(UserConfig config) {
 		ftp = new FTPClient();
 		try {
 			
@@ -73,10 +74,10 @@ public class FTPService {
 				ftp.enterLocalPassiveMode();
 			}
 		} catch (Exception e) {
-			log.error("ftp connect fail :" + e.getMessage());
+			log.error(config.getConfigFileName()+" : ftp connect fail :" + e.getMessage());
 			return false;
 		}
-		log.info("ftp connect success");
+		log.info(config.getConfigFileName()+" : ftp connect success");
 		return true;
 	}
 	
@@ -85,21 +86,24 @@ public class FTPService {
 	 * @param config
 	 * @throws Exception
 	 */
-	public static void upload(UserConfig config) throws Exception {
+	private void upload(UserConfig config) throws Exception {
 		File file = new File(config.getLocalPath());
 		if (file.isDirectory()) {
 			File[] files = file.listFiles();
 			for (File f : files) {
 				try{
 					FileInputStream input = new FileInputStream(f);
-					ftp.storeFile(f.getName(), input);
+					boolean result = ftp.storeFile(f.getName(), input);
 					input.close();
-					if(config.isDelete())
+					if(config.isDelete() && result)
 					{
 						f.delete();
+					}else if(!result)
+					{
+						log.info(this.config.getConfigFileName()+" : file :"+f.getName()+" upload fail!");
 					}
 				}catch (Exception e) {
-					log.error("up load file "+ f.getName() +" fail ! errorMessage:"+e.getMessage());
+					log.error(this.config.getConfigFileName()+" : up load file "+ f.getName() +" fail ! errorMessage:"+e.getMessage());
 				}
 			}
 		} else {
@@ -109,7 +113,7 @@ public class FTPService {
 		}
 	}
 	//
-	public static void downLoad(UserConfig config)throws Exception{
+	private void downLoad(UserConfig config)throws Exception{
 		
 		FTPFile[] listFiles = ftp.listFiles();
 		if(listFiles!=null && listFiles.length!=0){
@@ -121,7 +125,7 @@ public class FTPService {
 					os.close();
 					if(!rf)
 					{
-						log.info("file :"+fileName+" download fail!");
+						log.info(this.config.getConfigFileName()+" : file :"+fileName+" download fail!");
 						File f = new File(config.getLocalPath()+File.separator+fileName);
 						if(f.exists())
 						{
@@ -129,40 +133,48 @@ public class FTPService {
 						}
 						continue;
 					}
-					if(config.isDelete())
+					if(config.isDelete() && rf)
 					{
 						boolean deleteFile = ftp.deleteFile(fileName);
 						if(!deleteFile)
 						{
-							log.info("delete file "+fileName+" fail");
+							log.info(this.config.getConfigFileName()+" : delete file "+fileName+" fail");
 						}
 					}
 				}catch (Exception e) {
-					log.info("download  file "+fileName+" fail! errorMessage: "+e.getMessage());
+					log.info(this.config.getConfigFileName()+" : download  file "+fileName+" fail! errorMessage: "+e.getMessage());
 				}
 			}
 		}
 	}
 	
-	public static void ftpLogOut() {
+	private void ftpLogOut() {
 		if (null != ftp && ftp.isConnected()) {
 			try {
 				boolean reuslt = ftp.logout();// 退出FTP服务器
 				if (reuslt) {
-					log.info("成功退出服务器");
+					log.info(this.config.getConfigFileName()+" : logout ftp server success!");
 				}
 			} catch (Exception e) {
 				e.printStackTrace();
-				log.warn("退出FTP服务器异常！" + e.getMessage());
+				log.warn(this.config.getConfigFileName()+" : logout FTP error！" + e.getMessage());
 			} finally {
 				try {
 					ftp.disconnect();// 关闭FTP服务器的连接
 				} catch (Exception e) {
 					e.printStackTrace();
-					log.warn("关闭FTP服务器的连接异常！");
+					log.warn(this.config.getConfigFileName()+" : shut down FTP connection error"+e.getMessage());
 				}
 			}
 		}
+	}
+
+	public void setConfig(UserConfig config) {
+		this.config = config;
+	}
+
+	public UserConfig getConfig() {
+		return config;
 	}
 
 }
