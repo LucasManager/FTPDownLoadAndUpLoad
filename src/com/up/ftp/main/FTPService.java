@@ -92,12 +92,14 @@ public class FTPService extends Thread {
 			File[] files = file.listFiles();
 			for (File f : files) {
 				try{
+					System.out.println("upload file:["+f.getName()+"]");
 					FileInputStream input = new FileInputStream(f);
 					boolean result = ftp.storeFile(f.getName(), input);
 					input.close();
 					if(config.isDelete() && result)
 					{
 						f.delete();
+						System.out.println("file :["+f.getName()+"] upload success!");
 					}else if(!result)
 					{
 						log.info(this.config.getConfigFileName()+" : file :"+f.getName()+" upload fail!");
@@ -120,6 +122,7 @@ public class FTPService extends Thread {
 			for (FTPFile file : listFiles) {
 				String fileName = file.getName();
 				try{
+					System.out.println("downLoad file:["+fileName+"]");
 					BufferedOutputStream os = new BufferedOutputStream(new FileOutputStream(config.getLocalPath()+File.separator+fileName));
 					boolean rf = ftp.retrieveFile(fileName, os);
 					os.close();
@@ -135,6 +138,7 @@ public class FTPService extends Thread {
 					}
 					if(config.isDelete() && rf)
 					{
+						System.out.println("file :["+fileName+"] download success!");
 						boolean deleteFile = ftp.deleteFile(fileName);
 						if(!deleteFile)
 						{
