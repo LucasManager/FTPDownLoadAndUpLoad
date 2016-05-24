@@ -99,7 +99,6 @@ public class FTPService extends Thread {
 					if(config.isDelete() && result)
 					{
 						f.delete();
-						System.out.println("file :["+f.getName()+"] upload success!");
 					}else if(!result)
 					{
 						log.info(this.config.getConfigFileName()+" : file :"+f.getName()+" upload fail!");
@@ -138,7 +137,6 @@ public class FTPService extends Thread {
 					}
 					if(config.isDelete() && rf)
 					{
-						System.out.println("file :["+fileName+"] download success!");
 						boolean deleteFile = ftp.deleteFile(fileName);
 						if(!deleteFile)
 						{
